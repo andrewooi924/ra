@@ -85,6 +85,17 @@ def summarize_paper(text):
     )
     return response.choices[0].message.content
 
+# Fetching citations using Semantic Scholar API
+def get_citations(title):
+    url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={title}"
+    response = requests.get(url).json()
+
+    citations = []
+    for paper in response.get("data", []):
+        citations.append(paper["title"])
+
+    return citations[:5]
+
 # Streamlit UI
 st.title("AI Research Assistant")
 query = st.text_input("Enter your research topic")
@@ -97,5 +108,9 @@ if st.button("Search"):
         # summary = summarize_text(paper["summary"])  # Summarize using GPT-4
         # st.write(f"**Summary:** {summary}")
         st.write(f'**Summary**: {summarize_paper(extract_full_text(paper['url']))}')
+
+if st.button("Cite"):
+    related_papers = get_citations(query)
+    print(related_papers)
 
 print("Research Completed!")
