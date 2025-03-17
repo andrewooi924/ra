@@ -1,0 +1,7 @@
+openai
+arxiv
+faiss-cpu
+sentence-transformers
+requests
+PyMuPDF  
+streamlit
