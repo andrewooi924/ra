@@ -1,1 +1,2 @@
-# ra
+# AI Research Assistant (RA)
+RA retrives, ranks, and summarises academic papers to streamline literature review. It utilises BM25 and FAISS for efficient search and relevance ranking, along with LLM-based paper summarisation. A PostgreSQL database is used to store and retrieve search history, enabling users to revisit past queries. The system is designed for researchers seeking a more effective way to discover and process academic literature.
