@@ -5,3 +5,5 @@ sentence-transformers
 requests
 PyMuPDF  
 streamlit
+psycopg2-binary
+rank_bm25

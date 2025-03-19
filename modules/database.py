@@ -1,34 +1,24 @@
-import sqlite3
+import psycopg2
+import os
 
-DB_NAME = "search_history.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost/research_assistant") 
 
-def init_db():
-    """Initialize the database and create tables if they don't exist."""
-    conn = sqlite3.connect(DB_NAME)
+def connect_db():
+    return psycopg2.connect(DATABASE_URL)
+
+def store_search(query):
+    conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS searches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            query TEXT NOT NULL,
-            results TEXT NOT NULL
-        )
-    ''')
+    cursor.execute("INSERT INTO searches (query) VALUES (%s)", (query,))
     conn.commit()
+    cursor.close()
     conn.close()
 
-def save_search(query, results):
-    """Save search query and results to the database."""
-    conn = sqlite3.connect(DB_NAME)
+def get_search_history():
+    conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO searches (query, results) VALUES (?, ?)", (query, results))
-    conn.commit()
+    cursor.execute("SELECT query, timestamp FROM searches ORDER BY timestamp DESC LIMIT 10")
+    results = cursor.fetchall()
+    cursor.close()
     conn.close()
-
-def get_search_history(limit=5):
-    """Retrieve the last few searches from the database."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT query, results FROM searches ORDER BY id DESC LIMIT ?", (limit,))
-    history = cursor.fetchall()
-    conn.close()
-    return history
+    return results
