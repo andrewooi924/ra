@@ -1,6 +1,6 @@
 # AI Research Assistant
 
-A Streamlit-based system for retrieving, ranking, and summarising academic papers, using BM25 and FAISS for search and relevance scoring, an LLM for paper summarisation, and PostgreSQL for persistent search history.
+A Streamlit-based system for retrieving, ranking, and summarising academic papers, using BM25 and FAISS in LangChain for search and relevance scoring, an LLM for paper summarisation, and PostgreSQL for persistent search history.
 
 ## Features
 
