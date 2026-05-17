@@ -5,10 +5,10 @@ A Streamlit-based system for retrieving, ranking, and summarising academic paper
 ## Features
 
 * Query academic literature through a single interface
-* BM25 lexical search
-* FAISS vector search
+* BM25 lexical search via LangChain `BM25Retriever`
+* FAISS semantic search via LangChain `FAISS` vectorstore
 * Combined ranking pipeline
-* LLM-generated summaries
+* LLM-generated summaries using LangChain prompt chains and recursive text splitting
 * Search history stored and retrievable from PostgreSQL
 
 ## Setup
