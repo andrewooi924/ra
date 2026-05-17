@@ -1,30 +1,17 @@
-import faiss
-import numpy as np
-from sentence_transformers import SentenceTransformer
+from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
 
-# Load embedding model
-model = SentenceTransformer("all-MiniLM-L6-v2")
+_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-def create_faiss_index(papers):
-    """Create FAISS index for paper embeddings."""
-    paper_texts = [paper["summary"] for paper in papers]
-    embeddings = model.encode(paper_texts)
 
-    # Debugging: Check embeddings
-    print("Embeddings shape:", np.array(embeddings).shape)  # Ensure 2D shape
+def create_faiss_index(papers: list[dict]):
+    """Create a LangChain FAISS vectorstore from a list of paper dicts."""
+    texts = [p["summary"] for p in papers]
+    vectorstore = FAISS.from_texts(texts, _embeddings, metadatas=papers)
+    return vectorstore
 
-    if len(embeddings) == 0:
-        raise ValueError("No embeddings were generated. Check if paper summaries exist.")
-    
-    dimension = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dimension)
-    index.add(np.array(embeddings))
 
-    return index, papers
-
-def search_papers(query, index, papers, top_k=3):
-    """Search FAISS index for relevant papers."""
-    query_embedding = model.encode([query])
-    _, indices = index.search(np.array(query_embedding), top_k)
-
-    return [papers[i] for i in indices[0]]
+def search_papers(query: str, vectorstore, top_k: int = 3) -> list[dict]:
+    """Search the FAISS vectorstore and return matching paper dicts."""
+    results = vectorstore.similarity_search(query, k=top_k)
+    return [doc.metadata for doc in results]

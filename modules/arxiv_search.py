@@ -1,44 +1,50 @@
-import arxiv
 import time
-import numpy as np
-from rank_bm25 import BM25Okapi
+import arxiv
+from langchain_community.retrievers import BM25Retriever
+from langchain_core.documents import Document
 
-def fetch_arxiv_papers(query, year_range, topic, sort_by):
-    search = arxiv.Search(
-        query=query,
-        max_results=10,
-        sort_by=arxiv.SortCriterion.SubmittedDate if sort_by == "Newest" else arxiv.SortCriterion.Relevance
+_client = arxiv.Client(page_size=10, delay_seconds=10, num_retries=3)
+
+
+def _fetch_with_backoff(search: arxiv.Search, max_attempts: int = 5) -> list:
+    """Fetch results, retrying with exponential backoff on HTTP 429."""
+    for attempt in range(max_attempts):
+        try:
+            return list(_client.results(search))
+        except arxiv.HTTPError as e:
+            if e.status == 429 and attempt < max_attempts - 1:
+                wait = 15 * (2 ** attempt)  # 15s, 30s, 60s, 120s
+                time.sleep(wait)
+            else:
+                raise
+
+
+def fetch_arxiv_papers(query: str, year_range: tuple, topic: str, sort_by: str) -> list[dict]:
+    sort_criterion = (
+        arxiv.SortCriterion.SubmittedDate
+        if sort_by == "Newest"
+        else arxiv.SortCriterion.Relevance
     )
+    search = arxiv.Search(query=query, max_results=10, sort_by=sort_criterion)
 
-    papers = []
-    paper_texts = []
-    for paper in search.results():
-        time.sleep(1)
-        year = paper.published.year 
-        if year_range[0] <= year <= year_range[1]:  # Filter by year
-            if topic == "All" or topic.lower() in paper.title.lower():  # Filter by topic
-                papers.append({"title": paper.title, "summary": paper.summary, "url": paper.pdf_url})
-                paper_texts.append(paper.title + " " + paper.summary)
+    papers, docs = [], []
+    for paper in _fetch_with_backoff(search):
+        year = paper.published.year
+        if year_range[0] <= year <= year_range[1]:
+            if topic == "All" or topic.lower() in paper.title.lower():
+                meta = {"title": paper.title, "summary": paper.summary, "url": paper.pdf_url}
+                papers.append(meta)
+                docs.append(Document(page_content=paper.title + " " + paper.summary, metadata=meta))
 
-    if not papers and sort_by == arxiv.SortCriterion.SubmittedDate:
-        search = arxiv.Search(query=query, max_results=10, sort_by=arxiv.SortCriterion.Relevance)
-        papers = list(search.results())
+    if not docs:
+        fallback = arxiv.Search(query=query, max_results=10, sort_by=arxiv.SortCriterion.Relevance)
+        for paper in _fetch_with_backoff(fallback):
+            meta = {"title": paper.title, "summary": paper.summary, "url": paper.pdf_url}
+            papers.append(meta)
+            docs.append(Document(page_content=paper.title + " " + paper.summary, metadata=meta))
 
-    if papers:
-        ranked_papers = bm25_ranking(query, papers, paper_texts)
-        return ranked_papers[:10]
+    if not docs:
+        return []
 
-    return papers
-
-def bm25_ranking(query, papers, paper_texts):
-    tokenized_corpus = [text.split() for text in paper_texts]
-    bm25 = BM25Okapi(tokenized_corpus)
-
-    query_tokens = query.split()
-    bm25_scores = bm25.get_scores(query_tokens)
-
-    # Rank papers by BM25 score
-    ranked_indices = np.argsort(bm25_scores)[::-1] # Sort descending
-    ranked_papers = [papers[i] for i in ranked_indices]
-
-    return ranked_papers
+    retriever = BM25Retriever.from_documents(docs, k=min(10, len(docs)))
+    return [doc.metadata for doc in retriever.invoke(query)]

@@ -5,6 +5,9 @@ from modules.embeddings import create_faiss_index, search_papers
 from modules.pdf_processing import extract_full_text
 from modules.summarization import summarize_paper_sections
 from modules.citations import get_citations
+from modules.database import init_db
+
+init_db()
 
 # Streamlit UI
 st.set_page_config(page_title="AI Research Assistant", layout="wide")
@@ -12,7 +15,7 @@ st.title("AI Research Assistant")
 st.sidebar.header("Filters")
 
 # Sidebar Filters
-year_filter = st.sidebar.slider("Select Year", 2000, 2024, (2015, 2024))
+year_filter = st.sidebar.slider("Select Year", 2000, 2026, (2015, 2026))
 topic_filter = st.sidebar.selectbox("Topic", ["All", "AI", "NLP", "LLM"])
 sort_by = st.sidebar.radio("Sort By", ["Relevance", "Newest"], index=0)
 

@@ -1,13 +1,24 @@
-import fitz
 import requests
+from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-def extract_full_text(pdf_url):
-    """Download and extract full text from a PDF paper."""
-    response = requests.get(pdf_url)
-    with open("temp.pdf", "wb") as f:
+_splitter = RecursiveCharacterTextSplitter(chunk_size=3000, chunk_overlap=200)
+
+# Number of chunks to pass to the LLM — keeps the summarization within context limits
+_MAX_CHUNKS = 5
+
+
+def extract_full_text(pdf_url: str) -> str:
+    """Download a PDF and return the first ~15 000 chars of extracted text."""
+    response = requests.get(pdf_url, timeout=30)
+    response.raise_for_status()
+
+    tmp_path = "temp.pdf"
+    with open(tmp_path, "wb") as f:
         f.write(response.content)
 
-    doc = fitz.open("temp.pdf")
-    full_text = "\n".join([page.get_text("text") for page in doc])
+    loader = PyMuPDFLoader(tmp_path)
+    pages = loader.load()
 
-    return full_text
+    chunks = _splitter.split_documents(pages)
+    return "\n\n".join(chunk.page_content for chunk in chunks[:_MAX_CHUNKS])

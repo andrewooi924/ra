@@ -1,10 +1,26 @@
 import psycopg2
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost/research_assistant") 
+DATABASE_URL = "postgresql://andrewooi@localhost:5432/postgres"
 
 def connect_db():
     return psycopg2.connect(DATABASE_URL)
+
+def init_db():
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS searches (
+            id SERIAL PRIMARY KEY,
+            query TEXT NOT NULL,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 def store_search(query):
     conn = connect_db()

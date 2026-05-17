@@ -1,9 +1,12 @@
-openai
-arxiv
+langchain
+langchain-openai
+langchain-community
+langchain-huggingface
 faiss-cpu
+rank_bm25
 sentence-transformers
-requests
-PyMuPDF  
+arxiv
+PyMuPDF
 streamlit
 psycopg2-binary
-rank_bm25
+requests
